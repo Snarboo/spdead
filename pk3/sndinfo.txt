@@ -1,0 +1,5 @@
+// Soft Permadeath Sound Info
+
+// Extra Life
+powerups/1up				powexlif
+$volume powerups/1up		0.75

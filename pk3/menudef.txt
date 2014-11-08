@@ -1,0 +1,53 @@
+// Soft Permadeath Menu Defs
+// Some code taken and modified from Weasel's Terrorists
+// Base menu is taken directly from GZDoom
+
+OptionMenu "OptionsMenu"
+{
+	Title "OPTIONS"
+	Submenu "Permadeath Configuration", "PermadeathConfig"
+	StaticText " "
+	Submenu "Customize Controls", "CustomizeControls"
+	Submenu "Mouse options", "MouseOptions"
+	Submenu "Joystick options", "JoystickOptions"
+	StaticText " "
+	Submenu "Player Setup", "PlayerMenu"
+	Submenu "Gameplay Options", "GameplayOptions"
+	Submenu "Compatibility Options", "CompatibilityOptions"
+	Submenu "Automap Options", "AutomapOptions"
+	Submenu "HUD Options", "HUDOptions"
+	Submenu "Miscellaneous Options", "MiscOptions"
+	Submenu "Sound Options", "SoundOptions"
+	Submenu "Display Options", "VideoOptions"
+	Submenu "Set video mode", "VideoModeMenu"
+	StaticText " "
+	SafeCommand "Reset to defaults", "reset2defaults"
+	SafeCommand "Reset to last saved", "reset2saved"
+	Command "Go to console", "menuconsole"
+}
+	OptionMenu "PermadeathConfig" // Permadeath Menu
+	{
+		Title "Permadeath Configuration"
+		StaticText ""
+		StaticText "Base Options:", 1
+		Option "Enable Permadeath System", "AllowPermadeath", "OnOff"
+		StaticText ""
+		StaticText "Punishment Options:", 1
+		Option "Enable Punishment System", "EnablePunishment", "OnOff"
+		Slider "Health Penalty on V. Easy", "Punishment1", 0.05, 1.00, 0.05
+		Slider "Health Penalty on Easy", "Punishment2", 0.05, 1.00, 0.05
+		Slider "Health Penalty on Normal", "Punishment3", 0.05, 1.00, 0.05
+		Slider "Health Penalty on Hard", "Punishment4", 0.05, 1.00, 0.05
+		Slider "Health Penalty on V. Hard", "Punishment5", 0.05, 1.00, 0.05
+		StaticText ""
+		StaticText "Life Options:", 1
+		Option "Enable Lives", "EnableLives", "OnOff"
+		Slider "Max Starting Lives", "MaxStartingLives", 0, 9, 1
+		Option "Lives Drop On Death", "DropLives", "OnOff"
+		Option "Dropped Lives Are Removed", "EraseDroppedLives", "OnOff"
+		StaticText ""
+		StaticText "Reward Options:", 1
+		Option "Enable Rewards System", "EnableRewards", "OnOff"
+		Slider "Levels Until 1UP", "LevelsUntilReward", 1, 10, 1
+		Option "Receive 1UP if you have none", "RewardForNo1Ups", "OnOff"
+	}

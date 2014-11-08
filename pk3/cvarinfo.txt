@@ -1,0 +1,27 @@
+// These CVARs are used to keep track of the permadeath system
+
+// Permadeath
+// These control the permadeath system
+server bool AllowPermadeath = TRUE; // Is permadeath allowed?
+server int PlayerDeaths = 0; // How many times has the player died?
+
+// Lives
+// These control the lives system
+server bool EnableLives = TRUE; // Should there be lives?
+server bool DropLives = TRUE; // Should lives be dropped upon death?
+server bool EraseDroppedLives = TRUE; // Should dropped lives be erased upon next death?
+server int MaxStartingLives = 3; // How many lives does the player start with?
+
+// Punishment
+// These control the punishment system
+server bool EnablePunishment = TRUE; // Should the player be punished? Overrides lives
+server float Punishment1 = 1.0; // Punishment for Very Easy difficulty
+server float Punishment2 = 1.0; // Punishment for Easy difficulty
+server float Punishment3 = 0.9; // Punishment for Normal difficulty
+server float Punishment4 = 0.75; // Punishment for Hard difficulty
+server float Punishment5 = 0.5; // Punishment for Very Hard difficulty
+
+// Rewards
+server bool EnableRewards = TRUE; // This enables and disables the rewards
+server int LevelsUntilReward = 1; // How many levels must be beaten until rewarded?
+server bool RewardForNo1Ups = TRUE; // Does the player receive lives if they have none?

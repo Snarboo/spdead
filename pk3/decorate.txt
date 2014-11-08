@@ -1,0 +1,71 @@
+/* Soft Permadeath Mod
+** This file contains the inventory items needed to make the soft permadeath
+** system work.
+*/
+
+// Constants
+
+// Actors
+
+ACTOR NighInvulnerability : PowerupGiver
+// This powerup makes the player nearly invulnerable. We'll be using the effects 
+// of this power up to check the player's state.
+{
+	Powerup.Duration 0x7FFFFFFF
+	Powerup.Type PowerBuddha
+	// The below two properties ensure the powerup is used immediately!
+	Inventory.MaxAmount 0
+	+Inventory.AutoActivate
+	+Inventory.Untossable // Don't want the player dropping this!
+}
+
+ACTOR RespawnPoint: MapSpot
+// This is where the player will respawn upon "dying"
+{
+}
+
+Actor OneUp : Inventory
+// These are used to keep track of lives
+{
+	Inventory.Amount 1
+	Inventory.MaxAmount 9 // 9 lives! Get it?!
+	+Inventory.Untossable
+}
+
+ACTOR ExtraLife : CustomInventory
+// These are used exclusively for harder difficulties!
+{
+	Scale 0.45
+	Inventory.PickupMessage "Extra life!"
+	Inventory.PickupSound "powerups/1up"
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		// Spawns nice sparklies so we can see it better!
+		ANKH A 1 NoDelay BRIGHT Light("ANKH") A_SpawnItemEx ("ExtraLifeFX", FRANDOM(-2.0, 2.0), FRANDOM(-2.0, 2.0), FRANDOM(20.0, 25.0), 0.0, 0.0, FRANDOM(1.0, 2.0))
+		Loop
+	Pickup:
+		TNT1 A 0 A_GiveInventory ("OneUp", 1)
+		TNT1 A 0 A_GiveInventory ("NighInvulnerability", 1)
+		Stop
+	}
+}
+
+ACTOR ExtraLifeFX : BulletPuff
+// These sparklies give the extra life some pizazz!
+{
+	Alpha 0.75
+	Scale 0.5
+	VSpeed 2
+	RenderStyle Add
+	-AllowParticles
+	States
+	{
+	Spawn:
+		TNT1 A 0
+	Melee:
+		ANKH BCD 3 BRIGHT
+		Stop
+	}
+}

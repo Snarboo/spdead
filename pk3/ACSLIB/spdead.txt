@@ -1,0 +1,346 @@
+/* Written by: Snarboo
+** Start Date: 14-11-1
+** End Date:
+** Script: spdead
+** A script that enables soft permadeath. The player is granted a Buddha powerup
+** at the start of the map. A respawn point is also created.
+**
+** Upon "dying" (ie health = 1), the player is sent back to the respawn point.
+** Player deaths are kept track of by a special CVAR.
+**
+** Punishment, lives and rewards can be enabled with various CVARs, detailed 
+** below. 
+**
+** These are the default punishments if EnablePunishment is set to True:
+**		1. Very Easy & Easy - No Punishment
+**		2. Normal - Health is set to 90% upon respawn. 
+**		3. Hard - Health is set to 75%. 
+**		4. Very Hard - Health is set to 50%.
+**				 
+** These are the various behaviors lives can have:
+** 		1. EnableLives - Enables the lives system. Default is True
+**		2. DropLives - Lives are dropped upon death. Default is True
+**		3. EraseDroppedLives - Dropped lives are erased. Default True
+**		4. MaxStartingLives - How many lives you start with. Max is 9, default 3
+**
+** Reward CVARs:
+**		1. EnableRewards - Enables reward system. Default is True
+**		2. LevelsUntilReward - # of levels beaten until reward. Max is 10, def 1
+**		3. RewardForNo1Ups - Receive lives if you have none. Default is True
+**
+** Permadeath CVARS:
+** 		1. AllowPermadeath - Enables permadeath. Default is True
+**		2. PlayerDeaths - Keeps track of deaths. Max value is unknown, default 0
+**/
+
+
+// Includes
+#library "SPDEAD"
+#include "ZCOMMON.ACS"
+
+// Constants
+
+// Global, world, and map scope variables
+global int 1: PlayerDeaths; // Let's keep track of player deaths!
+global int 2: StartOfGame; // Checks the start of the game
+global int 3: HubDeaths; // Let's see how often the player died across a level!
+global int 4: PlayerGameHealth; // Player's health at the start of the game
+global int 5: Punishments[]; // This stores the various punishment values. MUST BE GLOBAL!
+global int 6: RewardLimit; // This is how long until the player receives their reward
+
+int ActorCoords[4]; // Thise stores the player's coordinates and angle at map spawn
+
+str Respawner = "RespawnPoint"; // In case we change the name later and need to reference it
+str BuddhaPowerup = "NighInvulnerability";
+str OneUp = "OneUp";
+str ExtraLife = "ExtraLife";
+
+// Scripts
+
+script "StartPermadeath" ENTER
+// This script sets up the basic elements of the permadeath system
+{
+	// variables
+	
+	// code
+	ACS_NamedExecuteAlways ("CheckPlayerRewards", 0); // Let's reward the player!
+	Delay (1); // So the rewards system works properly
+		
+	CheckGameStart(); // Has the game started? If so let's, do stuff!
+		
+	SetupPermadeath(); // Let's initiate the permadeath system!
+	
+	Delay (0); // Debug
+}
+
+script "RestartPermadeath" RETURN
+// This scripts restarts the permadeath system when changing levels in a hub
+{
+	SetupPermadeath();
+}
+
+script "CheckPlayerRewards" (void)
+// This script checks various things the player has done and then rewards them
+// accordingly. If they have not died on a level, they get an extra life. They 
+// also get an extra life if they do not have one.
+{
+	// variables
+	
+	// code
+	if (GetCVAR ("EnableRewards") > 0 && StartOfGame == 1)
+	// Does the player have rewards enabled, and has the game started?
+	{
+		if (CheckInventory (OneUp) < 1 && GetCVAR ("RewardForNo1Ups") > 0)
+		// Does the player have no lives left, and are they rewarded for this?
+		{
+			GiveInventory (OneUp, 1); // Let's give them one!
+			RewardLimit = 0; // Let's reset this just in case
+		}
+		else if (HubDeaths < 1 && GetCVAR ("EnableLives") > 0)
+		// Has the player not died, and do they have lives enabled?	 
+		{
+			RewardLimit++; // Increment reward limit first!
+			If (RewardLimit >= GetCVAR ("LevelsUntilReward"))
+			// Has the player beaten enough levels?
+			{	
+				GiveInventory (OneUp, 1); // Let's reward them!
+				RewardLimit = 0; // And let's reset this for the next round
+			}
+		} 
+		HubDeaths = 0; // Reset level deaths
+	}
+}
+
+script "CheckPermadeathStatus" (void)
+// A looping script that constantly checks the player's health. If their health
+// reaches 1, we teleport them to the relevant respawn point
+{
+	// variables
+	
+	// code
+	while (True) 
+	// Should always loop
+	{
+		if (CheckInventory (OneUp) > 0 || GetCVAR ("EnableLives") < 1)
+		// If the player has a life or does not have them enabled, they get 
+		// the appropriate power up! This is done to prevent cheating, such as 
+		// by toggling the permadeath CVARs.
+		{
+			GiveInventory (BuddhaPowerup, 1);
+		}
+			
+		while (GetCVAR ("AllowPermadeath") > 0)
+		// Is permadeath enabled?
+		{
+			if (GetCVAR ("EnableLives") > 0 && GetCVAR ("EnablePunishment") > 0)
+			// Let's display extra lives if the player has lives and punishment 
+			// enabled
+			{
+				DisplayLives();
+			}
+		
+			if (GetActorProperty (0, APROP_Health) == 1 && CheckInventory ("PowerBuddha")) 
+			// Has the player's health dropped low enough, and do they have
+			// Buddha mode?
+			{
+				IsPlayerDead(); // Calls the relevant death function
+			}
+			Delay (1); // Necessary to prevent an infinite loop
+		}
+		
+		TakeInventory ("PowerBuddha", 1); // Now to take it away when the loop falls thru
+		
+		while (GetCVAR ("AllowPermadeath") < 1)
+		// Is permadeath off?
+		{
+			// Do nothing
+			Delay (1); // Infinite loop protection
+		}
+		// And around it goes again!
+	}
+}
+
+// Functions
+
+function void CheckGameStart (void)
+// This function checks for and sets various properties if the game has started
+{
+	// variables
+	
+	// code
+	If (StartOfGame != 1)
+	// Has the game started yet?
+	{
+		// Let's fill the Punishments array! We do this at the start of a game
+		// in case a map modifies these values
+		Punishments[0] = GetCvar("Punishment1");
+		Punishments[1] = GetCvar("Punishment2");
+		Punishments[2] = GetCvar("Punishment3");
+		Punishments[3] = GetCvar("Punishment4");
+		Punishments[4] = GetCvar("Punishment5");
+		
+		PlayerGameHealth = GetActorProperty (0, APROP_Health);
+		// This checks the player's health at the start of the game
+			
+		If (GetCVAR ("EnableLives") > 0)
+		// Does the player have lives enabled?
+		{
+			GiveInventory (OneUp, GetCVAR("MaxStartingLives"));
+			// Let's give them some!
+		}
+		StartOfGame = 1; // The game has begun!
+	}
+}
+
+function void SetupPermadeath (void)
+// This function sets up permadeath.
+{
+	// variables
+	
+	// code
+	GetPlayerCoordinates(); // Let's get the player's coordinates!
+		
+	SpawnForced (Respawner, ActorCoords[0], ActorCoords[1], ActorCoords[2], 666999, ActorCoords[3]);
+	// Forces the appropriate respawn point to spawn regardless of where the
+	// player starts
+		
+	ACS_NamedExecuteAlways ("CheckPermadeathStatus", 0); 
+	// Checks the player's permadeath CVAR
+}
+
+function void GetPlayerCoordinates (void)
+// This gets and stores the player's coordinates
+{
+	// variables
+	
+	// code
+	ActorCoords[0] = GetActorX (0); 
+	ActorCoords[1] = GetActorY (0);
+	ActorCoords[2] = GetActorZ (0);
+	ActorCoords[3] = GetActorAngle (0);
+}
+
+function void DisplayLives (void)
+// This displays extra lives if that feature is enabled
+{
+	// variables
+	
+	// code
+	SetFont ("BIGFONT");
+	HudMessage (i:CheckInventory (OneUp); HUDMSG_Plain, 9999, CR_GOLD, 0.0, 0.0, 1.0); 
+	// Displays lives on the top left side of the screen
+}
+
+function void IsPlayerDead (void)
+// This is used to determine various attributes relating to the player's death
+{
+	// variables
+	
+	// code
+	PlayerDeaths++; // Increment deaths
+	HubDeaths++; // Increment hub deaths
+	SetCvar ("PlayerDeaths", GetCVAR ("PlayerDeaths") + 1); // Keeps track of player's total deaths across all games
+	// Should it be per map, hub, game?
+			
+	// Now to set the right punishment
+	SetPunishment();
+
+	// Teleport the player if they are still living
+	TeleportPlayer();
+}
+
+function void TeleportPlayer (void)
+// This function teleports the player to the relevant map spot
+{
+	// variables
+	
+	// code
+	if (GetActorProperty (0, APROP_Health) > 0)
+	// Only teleport the player if they are still living!
+	{
+		Teleport (666999, 0, 1); // Teleport the player back to the start
+		SetActorAngle (0, ActorCoords[3]); // Set the right angle, needs to happen after teleporting!
+	}
+}
+
+function void SetPunishment (void)
+// This function handles punishment, if it is enabled
+{
+	// variables
+	
+	// code
+	SetActorProperty (0, APROP_Health, PlayerGameHealth); // Default case, should something go wrong!
+	
+	if (GetCVAR ("EnablePunishment") > 0)
+	// Does the player have punishments enabled?
+	{
+		TakeOneUp();
+		SetRespawnHealth();
+	}
+}
+
+function void SetRespawnHealth (void)
+// This function sets the amount of health on respawn based on punishment
+// settings
+{
+	// variables
+	int PunishmentHealth; // Temporarily stores starting health so we can safely
+	// mess with it
+	
+	// code
+	if (GameSkill() >= 0 && GameSkill() < 5)
+	// This block of code should only execute on the default difficulties!
+	{
+		PunishmentHealth = PlayerGameHealth * Punishments[GameSkill()] >> 16;
+		// This sets the player's health on respawn based on their health at the
+		// start of the game, as well as multiplies it by a punishment value
+		SetActorProperty (0, APROP_Health, PunishmentHealth);
+	}
+}
+
+function void TakeOneUp (void)
+// This function spawns an extra life on higher difficulties, as well as removes
+// any existing lives spawned by the player
+{
+	// variables
+	
+	// code
+	if (GetCVAR ("EnableLives") > 0)
+	// Does the player have lives enabled?
+	{	
+		if (CheckInventory (OneUp) > 1)
+		// Does the player have more than one life?
+		{
+			TakeInventory (OneUp, 1); // First a life is taken
+			DropOneUp(); // Drops a life if the player has that feature enabled!
+		}
+		else // if not...
+		{
+			TakeInventory ("PowerBuddha", 1); // We take buddha mode away!
+			TakeInventory (OneUp, 1); // The rest is still the same, however
+			DropOneUp();
+		}
+	}
+}
+
+function void DropOneUp (void)
+// This function drops lives if that feature is enabled.
+{
+	// variables
+	
+	// code
+	if (GetCVAR ("DropLives") > 0)
+	// Can the player drop lives?
+	{
+		if (GetCVAR ("EraseDroppedLives") > 0)
+		// Are dropped lives erased?
+		{
+			Thing_Remove (667000); // The last life that spawned is removed
+		}
+	
+		SpawnForced (ExtraLife, GetActorX (0), GetActorY (0), GetActorZ (0), 667000, GetActorAngle (0));
+		// Spawn a life with a TID of 667000. This life will be erased if the
+		// relevant CVAR is enabled
+	}
+}	
+		

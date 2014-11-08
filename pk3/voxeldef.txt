@@ -1,0 +1,8 @@
+// Soft Permadeath Voxel Def
+
+ankha="ankha"
+// Extra Life
+{
+	Spin = 60
+	Scale = 0.45
+}

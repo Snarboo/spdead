@@ -1,0 +1,14 @@
+// Soft Permadeaths GL Definitions
+
+// Lights
+
+pulselight ANKH
+{
+	color 1.0 0.93 0.29
+	size 16
+	secondarysize 24
+	interval 5
+	dontlightself 1
+}
+
+// Light bindings
